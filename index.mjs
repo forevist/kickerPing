@@ -44,22 +44,21 @@ async function checkNewGames() {
   const games = await parseGames();
   for (const game of games) {
     const [table, category, team1, team2] = game;
-    let usersName = [];
-    Object.keys(users).forEach(user => {
-      if (team1.toLowerCase().includes(user.toLowerCase()) || team2.toLowerCase().includes(user.toLowerCase())) {
-        usersName.push(user.toLowerCase());
+    let chatIDs = [];
+    users.forEach(user => {
+      if (team1.toLowerCase().includes(user.player_name) || team2.toLowerCase().includes(user.player_name)) {
+        chatIDs.push(user.chat_id);
       }
     })
-    if (!usersName.length) {
+    
+    if (!chatIDs.length) {
       continue;
     }
     const key = `${category}|${table}|${team1}|${team2}`;
-    usersName.forEach((userName) => {
+    chatIDs.forEach((chatId) => {
       if (!notifiedGames.has(key)) {
-        const chatId = users[userName];
         try {
           bot.telegram.sendMessage(chatId, `Вы играете категорию "${category}" на столе ${table} \n ${team1} vs ${team2}`);
-          console.log(`${userName} уведомлен`)
         } catch (e) {
           console.log(e);
         }
