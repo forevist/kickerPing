@@ -13,14 +13,39 @@ const bot = new Telegraf(BOT_TOKEN);
 
 // инициализация списка пользователей (пока так)
 let users = getAllUsers();
+let URL;
+
+const ADMINS = process.env.ADMINS;
+function isAdmin(ctx) {
+  return ADMINS.includes(ctx.from.id);
+}
 
 // описание хэлп мессаджа
 bot.start((ctx) => {
+  if (!isAdmin(ctx)) {
+    ctx.reply(
+      'Привет! Чтобы получать уведомления, зарегистрируйся:\n\n' +
+      '\/register <Две буквы имени. Фамилия>\n\n' +
+      'Например:\n/register Al. Samsonov'
+    );
+    return;
+  }
+  
   ctx.reply(
     'Привет! Чтобы получать уведомления, зарегистрируйся:\n\n' +
+
     '\/register <Две буквы имени. Фамилия>\n\n' +
-    'Например:\n/register Al. Samsonov'
+    'Например:\n/register Al. Samsonov\n\n' +
+    'Так как ты админ, то можешь запустить парсинг на свой турнир \n\n' +
+
+    '\/set_tournament <ID>\n\n' +
+    'Например:\n/set_tournament 123456\n\n' +
+
+    '\/start_parser - запустит обработку игр\n\n' +
+
+    '\/stop_parser - остановит обработку игр (пожалуйста останови прасинг после окончания игрового дня)'
   );
+  
 });
 
 // Команда регистрации
@@ -36,12 +61,39 @@ bot.command('register', (ctx) => {
   ctx.reply(`"${playerName}" зарегистрирован!`);
 });
 
+// команды админа
+bot.command('set_tournament', (ctx) => {
+  if (!isAdmin(ctx)) return ctx.reply('Нет доступа');
+  
+  const id = ctx.message.text.split(' ')[1];
+  if (!id) return ctx.reply('Укажи ID турнира: /set_tournament 123');
+  
+  URL = `https://rtsf.ru/fast/tournament/players_station/get_launched_matchs_html.jsp?tournamentId=${id}&originalTournamentId=0&lang=ru&playerId=0&barCode=null&nocache=1749387112229`;
+  
+  ctx.reply(`ID турнира установлен: ${id}`);
+});
+
+bot.command('start_parser', (ctx) => {
+  if (!isAdmin(ctx)) return ctx.reply('Нет доступа');
+  
+  ctx.reply('Парсинг запущен');
+  startParsing();
+});
+
+bot.command('stop_parser', (ctx) => {
+  if (!isAdmin(ctx)) return ctx.reply('Нет доступа');
+  
+  ctx.reply('Парсинг остановлен');
+  stopParsing();
+});
+
 
 
 // Проверка и рассылка
 let notifiedGames = new Set();
 async function checkNewGames() {
-  const games = await parseGames();
+  console.log('checkNewGames');
+  const games = await parseGames(URL);
   for (const game of games) {
     const [table, category, team1, team2] = game;
     let chatIDs = [];
@@ -68,8 +120,18 @@ async function checkNewGames() {
   }
 }
 
-// checkNewGames();
-setInterval(checkNewGames, 5 * 1000);
+let parsing = false;
+let intervalId;
+function startParsing() {
+  if (parsing) return;
+  parsing = true;
+  intervalId = setInterval(checkNewGames, 5000);
+}
+function stopParsing() {
+  if (!parsing) return;
+  parsing = false;
+  clearInterval(intervalId);
+}
 
 bot.launch();
 console.log('Бот запущен');

@@ -1,9 +1,8 @@
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 
-const URL = 'https://rtsf.ru/fast/tournament/players_station/get_launched_matchs_html.jsp?tournamentId=84455&originalTournamentId=0&lang=ru&playerId=0&barCode=null&nocache=1749387112229';
 
-export async function parseGames() {
+export async function parseGames(URL) {
   const res = await fetch(URL);
   const html = await res.text();
   const $ = cheerio.load(html);
