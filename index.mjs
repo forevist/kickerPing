@@ -1,23 +1,20 @@
 import { Telegraf } from 'telegraf';
-import fs from 'fs';
 import { parseGames } from './parser.mjs';
+import dotenv from 'dotenv';
+import { getAllUsers, registerUser } from './db.mjs';
+dotenv.config();
 
-const BOT_TOKEN = '';
+const BOT_TOKEN = process.env.BOT_TOKEN;
+if (!BOT_TOKEN) {
+  console.error('BOT_TOKEN не указан в .env');
+  process.exit(1);
+}
 const bot = new Telegraf(BOT_TOKEN);
 
-const USERS_FILE = './storage.json';
-let users = {};
+// инициализация списка пользователей (пока так)
+let users = getAllUsers();
 
-if (fs.existsSync(USERS_FILE)) {
-  users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
-}
-
-// Сохраняем пользователей
-function saveUsers() {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
-
+// описание хэлп мессаджа
 bot.start((ctx) => {
   ctx.reply(
     'Привет! Чтобы получать уведомления, зарегистрируйся:\n\n' +
@@ -25,24 +22,24 @@ bot.start((ctx) => {
     'Например:\n/register Al. Samsonov'
   );
 });
+
 // Команда регистрации
-// bot.on('text', async (ctx) => {
 bot.command('register', (ctx) => {
-  // const teamName = ctx.message.text;
-  const teamName = ctx.message.text.split(' ').slice(1).join(' ');
+  const playerName = ctx.message.text.split(' ').slice(1).join(' ');
   
-  if (!teamName) {
+  if (!playerName) {
     ctx.reply('Пожалуйста, укажи название команды. Пример:\n/register Al. Samsonov');
     return;
   }
-  users[teamName.toLowerCase()] = ctx.chat.id;
-  saveUsers();
-  ctx.reply(`"${teamName}" зарегистрирован!`);
+  registerUser(ctx.chat.id, playerName.toLowerCase())
+  users = getAllUsers();
+  ctx.reply(`"${playerName}" зарегистрирован!`);
 });
+
+
 
 // Проверка и рассылка
 let notifiedGames = new Set();
-
 async function checkNewGames() {
   const games = await parseGames();
   for (const game of games) {
