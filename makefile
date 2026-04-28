@@ -14,7 +14,7 @@ SERVER_DIR = $(SERVER_PATH)
 
 # Собрать образ Docker локально
 build:
-	docker build -t $(IMAGE_NAME) .
+	docker build --platform linux/amd64 -t $(IMAGE_NAME) .
 
 # Сохранить образ в tar.gz
 save:
@@ -22,14 +22,14 @@ save:
 
 # Передать архив, .env и БД на сервер
 push: save
-	scp $(TAR_FILE) .env storage.db $(SERVER):$(SERVER_DIR)
+	scp $(TAR_FILE) .env storage.db docker-compose.yml $(SERVER):$(SERVER_DIR)
 
 # Развернуть на сервере: распаковать, загрузить, запустить
 deploy: push
 	ssh $(SERVER) 'cd $(SERVER_DIR) && \
 		gunzip -f $(TAR_FILE) && \
 		docker load < $(IMAGE_NAME).tar && \
-		docker-compose up -d'
+		docker compose up -d'
 
 # Удалить временный архив
 clean:

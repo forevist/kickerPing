@@ -107,15 +107,17 @@ async function checkNewGames() {
       continue;
     }
     const key = `${category}|${table}|${team1}|${team2}`;
-    chatIDs.forEach((chatId) => {
-      if (!notifiedGames.has(key)) {
-        try {
-          bot.telegram.sendMessage(chatId, `Вы играете категорию "${category}" на столе ${table} \n ${team1} vs ${team2}`);
-        } catch (e) {
-          console.log(e);
+    Promise.all(
+      chatIDs.map(async (chatId) => {
+        if (!notifiedGames.has(key)) {
+          try {
+            await bot.telegram.sendMessage(chatId, `Вы играете категорию "${category}" на столе ${table} \n ${team1} vs ${team2}`);
+          } catch (e) {
+            console.log(e);
+          }
         }
-      }
-    })
+      })
+    );
     notifiedGames.add(key);
   }
 }
